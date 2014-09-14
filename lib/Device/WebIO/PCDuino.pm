@@ -41,6 +41,9 @@ has 'pin_desc' => (
 has '_pin_mode' => (
     is => 'ro',
 );
+has '_output_pin_value' => (
+    is => 'ro',
+);
 
 
 sub BUILDARGS
@@ -49,9 +52,10 @@ sub BUILDARGS
 
     #$args->{pwm_bit_resolution} = 8;
     #$args->{pwm_max_int}        = 2 ** $args->{pwm_bit_resolution};
-    $args->{input_pin_count}    = 18;
-    $args->{output_pin_count}   = 18;
-    $args->{'_pin_mode'}        = [ ('IN') x $args->{input_pin_count} ];
+    $args->{input_pin_count}     = 18;
+    $args->{output_pin_count}    = 18;
+    $args->{'_pin_mode'}         = [ ('IN') x $args->{input_pin_count} ];
+    $args->{'_output_pin_value'} = [ (0) x $args->{output_pin_count} ];
     #$args->{pwm_pin_count}      = 1;
     # TODO
     # 6 bits for ADC 0 and 1, but 12 for the rest
@@ -79,7 +83,7 @@ sub all_desc
                 my $function = $self->{'_pin_mode'}[$_];
                 my $value = $function eq 'IN'
                     ? $self->input_pin( $_ ) 
-                    : $self->{'_output_pin_value'}[$_];
+                    : $self->_output_pin_value->[$_];
                 $_ => {
                     function => $function,
                     value    => $value,
@@ -108,6 +112,12 @@ sub input_pin
     return $in;
 }
 
+sub is_set_input
+{
+    my ($self, $pin) = @_;
+    return $self->_pin_mode->[$pin] eq 'IN';
+}
+
 
 has 'output_pin_count', is => 'ro';
 with 'Device::WebIO::Device::DigitalOutput';
@@ -123,8 +133,15 @@ sub set_as_output
 sub output_pin
 {
     my ($self, $pin, $val) = @_;
+    $self->_output_pin_value->[$pin] = $val;
     Device::PCDuino::output( $pin, $val );
     return 1;
+}
+
+sub is_set_output
+{
+    my ($self, $pin) = @_;
+    return $self->_pin_mode->[$pin] eq 'OUT';
 }
 
 
